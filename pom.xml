@@ -19,6 +19,7 @@
 
     <dependencies>
 
+        <!-- Scala -->
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
@@ -31,12 +32,15 @@
             <version>2.11.0-M4</version>
         </dependency>
 
+        <!-- Bzip2 -->
+
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
             <version>1.10</version>
         </dependency>
 
+        <!-- Spark -->
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.11</artifactId>
@@ -60,6 +64,16 @@
             <artifactId>hadoop-streaming</artifactId>
             <version>2.7.1</version>
         </dependency>
+
+
+        <!-- Opencompare -->
+        <dependency>
+            <groupId>org.opencompare.io</groupId>
+            <artifactId>io-wikipedia</artifactId>
+            <version>0.7-SNAPSHOT</version>
+        </dependency>
+
+        <!-- Tests -->
 
         <dependency>
             <groupId>org.scalatest</groupId>

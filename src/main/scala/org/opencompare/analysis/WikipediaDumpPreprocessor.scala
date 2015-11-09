@@ -37,9 +37,12 @@ class WikipediaDumpPreprocessor {
         case EvElemStart(pre, "page", attrs, scope) =>
           inPage = true
           pageBuilder ++= "<page>"
+
         case EvElemStart(pre, label, attrs, scope) if inPage =>
           pageBuilder ++= "<" + label + ">"
+
         case EvElemStart(pre, label, attrs, scope) =>
+
         case EvElemEnd(pre, "page") =>
           inPage = false
           pageBuilder ++= "</page>"
@@ -47,14 +50,23 @@ class WikipediaDumpPreprocessor {
           writer.print(revisionText.replaceAll("\n","&#10;"))
           writer.print("\n")
           pageBuilder.clear()
+
         case EvElemEnd(pre, label) if inPage =>
           pageBuilder ++= "</" + label + ">"
+
         case EvElemEnd(pre, label) =>
+
+        case EvEntityRef(entity) if inPage =>
+          pageBuilder ++= "&" + entity + ";"
         case EvEntityRef(entity) =>
+
         case EvProcInstr(target, text) =>
+
         case EvText(text) if inPage =>
           pageBuilder ++= text
+
         case EvText(text) =>
+
         case EvComment(text) =>
       }
     }
