@@ -1,13 +1,17 @@
 package org.opencompare.analysis
 
 import java.io.File
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Paths, Path, Files}
 
 import akka.actor.ActorSystem
 import org.apache.spark.{SparkContext, SparkConf}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
+import org.opencompare.api.java.impl.io.KMFJSONExporter
 import org.opencompare.io.wikipedia.io.{MediaWikiAPI, WikiTextTemplateProcessor, WikiTextLoader}
 import org.scalatest.{FlatSpec, Matchers}
 
+import scala.util.Random
 import scala.xml.XML
 import collection.JavaConversions._
 
@@ -18,9 +22,16 @@ class SparkTest extends FlatSpec with Matchers {
 
   val articleNamesDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/en/enwiki-20151102-pages-articles-multistream-index.txt.bz2")
   val enDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/en/enwiki-20151102-pages-articles-multistream.xml.bz2")
-  val zuDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/zu/zuwiki-20150806-pages-articles-multistream.xml.bz2")
+  val enPreprocessedDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/en/en.preprocessed.xml.bz2")
 
-  val preprocessedDumpFile = new File("zu-output.xml.bz2")
+  val zuDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/zu/zuwiki-20150806-pages-articles-multistream.xml.bz2")
+  val zuPreprocessedDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/zu/zu.preprocessed.xml.bz2")
+  val zuPreprocessedXMLFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/zu/zu.preprocessed.xml")
+
+  val preprocessedDumpFile = zuPreprocessedXMLFile
+  val minPartitions = 50
+
+  new File("output/").mkdirs() // Prepare output directory
 
   val sparkConf = new SparkConf()
     .setAppName("wikipedia-analysis")
@@ -37,55 +48,60 @@ class SparkTest extends FlatSpec with Matchers {
 
   it should "parse dump file with spark" in {
 
-    val xmlPages = sparkContext.textFile(preprocessedDumpFile.getAbsolutePath)
+    val xmlPages = sparkContext.textFile(preprocessedDumpFile.getAbsolutePath, minPartitions)
 
     val pages = xmlPages.map { doc =>
-        val pageXML = XML.loadString(doc)
-        val revXML = (pageXML \ "revision").head
+      // Parse XML
+      val pageParser = new PageParser
+      val page = pageParser.parseDump(doc)
 
-        val title = (pageXML \ "title").head.text
-        val id = (pageXML \ "id").head.text
+      // Mine PCM
+      val mediaWikiAPI = new MediaWikiAPI("wikipedia.org")
+      val templateProcessor = new WikiTextTemplateProcessor(mediaWikiAPI)
+      val wikitextMiner = new WikiTextLoader(templateProcessor)
 
-        val revId = (revXML \ "id").head.text
-        val revParentIdOption = (revXML \ "parentid").headOption
-        val revParentId = if (revParentIdOption.isDefined) {
-          revParentIdOption.get.text
-        } else {
-          ""
-        }
-        val timestamp = (revXML \ "timestamp").head.text
-        val wikitext = (revXML \ "text").head.text
-
-        val revision = Revision(revId, revParentId, timestamp, wikitext)
-        val page = Page(id, title, revision)
-        page
-      }
-
-    val miningResults = pages.map { page =>
-      try {
-        val mediaWikiAPI = new MediaWikiAPI("wikipedia.org")
-        val templateProcessor = new WikiTextTemplateProcessor(mediaWikiAPI)
-        val wikitextMiner = new WikiTextLoader(templateProcessor)
+      val result : List[AnalysisResult] = try {
         val pcmContainers = wikitextMiner.mine("zu", page.revision.wikitext, page.title)
-        Some(pcmContainers)
+
+        val stats = for (pcmContainer <- pcmContainers) yield {
+          // Write PCM to disk
+          val exporter = new KMFJSONExporter
+          val json = exporter.export(pcmContainer)
+          val sanitizedName = pcmContainer.getPcm.getName.replaceAll("[^a-zA-Z0-9.\\-_]", "_")
+          val fileName = if (sanitizedName.isEmpty) {
+            Random.nextString(10)
+          } else {
+            sanitizedName
+          }
+          val outputPath = Paths.get("output", fileName)
+          Files.write(outputPath, List(json), StandardCharsets.UTF_8)
+
+
+          // Compute stats
+          val title = pcmContainer.getPcm.getName
+          val nbFeatures = pcmContainer.getPcm.getConcreteFeatures.size()
+          val nbProducts = pcmContainer.getPcm.getProducts.size()
+
+          PCMStats(title, nbFeatures, nbProducts)
+        }
+
+        stats.toList
       } catch {
-        case e : Throwable => None
+        case e : Throwable => List(Error(e))
       }
-    }.cache()
 
-    val pcmContainers = miningResults.filter(_.isDefined).flatMap(_.get)
-
-    val stats = pcmContainers.map { pcmContainer =>
-      val title = pcmContainer.getPcm.getName
-      val nbFeatures = pcmContainer.getPcm.getConcreteFeatures.size()
-      val nbProducts = pcmContainer.getPcm.getProducts.size()
-      (title, nbFeatures, nbProducts)
+      result
     }
 
-    val errors = miningResults.filter(!_.isDefined).count()
+    val stats = pages.collect()
+//    stats.foreach(println)
 
-    stats.collect().foreach(println)
-    println(errors)
+    println("Pages without PCM = " + stats.filter(_.isEmpty).size)
+    println("Pages with PCMs = " + stats.filter(_.nonEmpty).size)
+    val sizes = stats.filter(_.nonEmpty).map(_.size)
+    println("Min number of PCMs = " + sizes.min)
+    println("Avg number of PCMs = " + (sizes.sum.toDouble / sizes.size.toDouble))
+    println("Max number of PCMs = " + sizes.max)
 
   }
 

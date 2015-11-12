@@ -9,3 +9,6 @@ buildNumber.properties
 
 .idea/
 wikipedia-dump-analysis.iml
+derby.log
+metastore_db/
+output/
