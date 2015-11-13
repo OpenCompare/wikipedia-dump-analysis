@@ -38,32 +38,27 @@ class WikipediaDumpProcessor {
       val result : List[AnalysisResult] = try {
         val pcmContainers = wikitextMiner.mine(language, page.revision.wikitext, page.title)
 
-        val stats = for (pcmContainer <- pcmContainers) yield {
+        val stats = for ((pcmContainer, index) <- pcmContainers.zipWithIndex) yield {
           // Write PCM to disk
           val exporter = new KMFJSONExporter
           val json = exporter.export(pcmContainer)
-          val sanitizedName = pcmContainer.getPcm.getName.replaceAll("[^a-zA-Z0-9.\\-_]", "_")
-          val fileName = if (sanitizedName.isEmpty) {
-            "no_name_" + Random.nextString(10)
-          } else {
-            sanitizedName
-          } + ".pcm"
-          val outputPath = Paths.get(outputDirectory.getAbsolutePath, fileName)
+          val fileName = page.title.replaceAll("[^a-zA-Z0-9.\\-_]", "_") + "_" + index + ".pcm"
+
+          val outputPath = Paths.get(outputDirectory.getAbsolutePath, "pcms", fileName)
           Files.write(outputPath, List(json), StandardCharsets.UTF_8)
 
 
           // Compute stats
-          val title = pcmContainer.getPcm.getName
           val nbFeatures = pcmContainer.getPcm.getConcreteFeatures.size()
           val nbProducts = pcmContainer.getPcm.getProducts.size()
 
-          PCMStats(title, nbFeatures, nbProducts)
+          PCMStats(page.id, page.title, nbFeatures, nbProducts)
         }
 
         stats.toList
       } catch {
         case e : Throwable =>
-          List(Error(e))
+          List(Error(page.id, page.title, e))
       }
 
       result

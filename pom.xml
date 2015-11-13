@@ -33,14 +33,6 @@
             <version>1.0.5</version>
         </dependency>
 
-        <!-- Bzip2 -->
-
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-compress</artifactId>
-            <version>1.10</version>
-        </dependency>
-
         <!-- Spark -->
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -64,6 +56,21 @@
             <version>2.2.4</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Others -->
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.10</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.tototoshi</groupId>
+            <artifactId>scala-csv_${scala.binary}</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+
 
     </dependencies>
 
