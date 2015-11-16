@@ -32,7 +32,9 @@ class WikipediaDumpProcessor {
 
       // Mine PCM
       val mediaWikiAPI = new MediaWikiAPI("wikipedia.org")
-      val templateProcessor = new WikiTextTemplateProcessor(mediaWikiAPI)
+      val templateProcessor = new WikiTextTemplateProcessor(mediaWikiAPI) {
+        override def expandTemplate(language: String, template: String): String = template
+      }
       val wikitextMiner = new WikiTextLoader(templateProcessor)
 
       val result : List[AnalysisResult] = try {

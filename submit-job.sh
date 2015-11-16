@@ -8,5 +8,5 @@ dump="/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/zu/zu.preprocessed.
 language="zu"
 output="/home/gbecan/git/OpenCompare/wikipedia-dump-analysis/output/"
 
-spark-submit --class $class --master $master $jar $dump $language $output 
+spark-submit --class $class --master $master $jar $dump $language $output $@
 
