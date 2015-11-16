@@ -17,7 +17,7 @@ import collection.JavaConversions._
   */
 class WikipediaDumpProcessor {
 
-  def process(sparkContext : SparkContext, dumpFile : File, language : String, outputDirectory : File, minPartitions : Option[Int]) : Array[List[AnalysisResult]] = {
+  def process(sparkContext : SparkContext, dumpFile : File, language : String, outputDirectory : File, exportPCM : Boolean, minPartitions : Option[Int]) : Array[List[AnalysisResult]] = {
 
     val pages = if (minPartitions.isDefined) {
       sparkContext.textFile(dumpFile.getAbsolutePath, minPartitions.get)
@@ -42,19 +42,20 @@ class WikipediaDumpProcessor {
 
         val stats = for ((pcmContainer, index) <- pcmContainers.zipWithIndex) yield {
           // Write PCM to disk
-          val exporter = new KMFJSONExporter
-          val json = exporter.export(pcmContainer)
           val fileName = page.title.replaceAll("[^a-zA-Z0-9.\\-_]", "_") + "_" + index + ".pcm"
 
-          val outputPath = Paths.get(outputDirectory.getAbsolutePath, "pcms", fileName)
-          Files.write(outputPath, List(json), StandardCharsets.UTF_8)
-
+          if (exportPCM) {
+            val exporter = new KMFJSONExporter
+            val json = exporter.export(pcmContainer)
+            val outputPath = Paths.get(outputDirectory.getAbsolutePath, "pcms", fileName)
+            Files.write(outputPath, List(json), StandardCharsets.UTF_8)
+          }
 
           // Compute stats
           val nbFeatures = pcmContainer.getPcm.getConcreteFeatures.size()
           val nbProducts = pcmContainer.getPcm.getProducts.size()
 
-          PCMStats(page.id, page.title, nbFeatures, nbProducts)
+          PCMStats(page.id, page.title, fileName, nbFeatures, nbProducts)
         }
 
         stats.toList

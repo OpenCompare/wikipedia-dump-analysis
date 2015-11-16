@@ -27,7 +27,7 @@ object WikipediaDumpAnalysisApp {
   def main(args: Array[String]) {
     if (args.size < 3) {
 
-      println("USAGE : path_to_dump_file language output_directory [min_partitions]")
+      println("USAGE : path_to_dump_file language output_directory export_pcm [min_partitions]")
 
     } else {
 
@@ -35,11 +35,13 @@ object WikipediaDumpAnalysisApp {
       val dumpFile = new File(args(0))
       val language = args(1)
       val outputDirectory = new File(args(2))
-      val minPartitions = args.lift(3).map(_.toInt)
+      val exportPCM = args(3).toBoolean
+      val minPartitions = args.lift(4).map(_.toInt)
 
       println("dump file = " + dumpFile.getAbsolutePath)
       println("language = " + language)
       println("output dir = " + outputDirectory.getAbsolutePath)
+      println("export pcm = " + exportPCM)
       println("min partitions = " + minPartitions.getOrElse("default"))
 
       // Create output directory structure
@@ -55,18 +57,18 @@ object WikipediaDumpAnalysisApp {
 
       // Process dump
       val dumpProcessor = new WikipediaDumpProcessor
-      val results = dumpProcessor.process(sparkContext, dumpFile, language, outputDirectory, minPartitions)
+      val results = dumpProcessor.process(sparkContext, dumpFile, language, outputDirectory, exportPCM, minPartitions)
 
       // Writer results to CSV
       val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/stats.csv")
 
-      writer.writeRow(Seq("id", "title", "status", "features", "products"))
+      writer.writeRow(Seq("id", "title", "status", "filename", "features", "products"))
 
       for (result <- results) {
         for (stats <- result) {
             stats match {
-              case PCMStats(id, title, features, products) =>
-                writer.writeRow(Seq(id, title, "ok", features, products))
+              case PCMStats(id, title, filename, features, products) =>
+                writer.writeRow(Seq(id, title, "ok", filename, features, products))
               case Error(id, title, e) =>
                 val stackTraceSWriter = new StringWriter()
                 val stackTracePWriter = new PrintWriter(stackTraceSWriter)
