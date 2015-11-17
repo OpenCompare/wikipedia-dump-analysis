@@ -1,6 +1,6 @@
 package org.opencompare.analysis
 
-import java.io.File
+import java.io.{PrintWriter, StringWriter, File}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
@@ -61,7 +61,11 @@ class WikipediaDumpProcessor {
         stats.toList
       } catch {
         case e : Throwable =>
-          List(Error(page.id, page.title, e))
+          val stackTraceSWriter = new StringWriter()
+          val stackTracePWriter = new PrintWriter(stackTraceSWriter)
+          e.printStackTrace(stackTracePWriter)
+          val stackTrace = stackTraceSWriter.toString
+          List(Error(page.id, page.title, stackTrace))
       }
 
       result

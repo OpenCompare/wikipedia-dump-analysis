@@ -5,4 +5,4 @@ package org.opencompare.analysis
   */
 trait AnalysisResult
 case class PCMStats(id : String, title : String, filename : String, features : Int, products : Int) extends AnalysisResult
-case class Error(id : String, title : String, exception : Throwable) extends AnalysisResult
+case class Error(id : String, title : String, stackTrace : String) extends AnalysisResult

@@ -69,11 +69,7 @@ object WikipediaDumpAnalysisApp {
             stats match {
               case PCMStats(id, title, filename, features, products) =>
                 writer.writeRow(Seq(id, title, "ok", filename, features, products))
-              case Error(id, title, e) =>
-                val stackTraceSWriter = new StringWriter()
-                val stackTracePWriter = new PrintWriter(stackTraceSWriter)
-                e.printStackTrace(stackTracePWriter)
-                val stackTrace = stackTraceSWriter.toString
+              case Error(id, title, stackTrace) =>
                 writer.writeRow(Seq(id, title, stackTrace))
             }
         }
