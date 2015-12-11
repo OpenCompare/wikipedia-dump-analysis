@@ -60,22 +60,7 @@ object WikipediaDumpAnalysisApp {
       val results = dumpProcessor.process(sparkContext, dumpFile, language, outputDirectory, exportPCM, minPartitions)
 
       // Writer results to CSV
-      val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/stats.csv")
-
-      writer.writeRow(Seq("id", "title", "status", "filename", "features", "products"))
-
-      for (result <- results) {
-        for (stats <- result) {
-            stats match {
-              case PCMStats(id, title, filename, features, products) =>
-                writer.writeRow(Seq(id, title, "ok", filename, features, products))
-              case Error(id, title, stackTrace) =>
-                writer.writeRow(Seq(id, title, stackTrace))
-            }
-        }
-      }
-
-      writer.close()
+      writeResultsToCSV(outputDirectory, results)
 
       // Print some stats
       println("Pages without PCM = " + results.filter(_.isEmpty).size)
@@ -87,6 +72,29 @@ object WikipediaDumpAnalysisApp {
 
 
     }
+  }
+
+  def writeResultsToCSV(outputDirectory : File, results : Array[List[AnalysisResult]]): Unit = {
+    val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/stats.csv")
+
+    val headers = List("id", "title", "status", "filename") :::
+      List("kmf", "csv", "html", "wikitext").flatMap(t => List("circular" + t + " PCM", "circular" + t + " metadata")) :::
+      List("features", "products")
+
+    writer.writeRow(headers)
+
+    for (result <- results) {
+      for (stats <- result) {
+        stats match {
+          case PCMStats(id, title, filename, circularTest, features, products) =>
+            writer.writeRow(List(id, title, "ok", filename) :: circularTest.flatMap(r => List(r.samePCM, r.sameMetadata)) :: List(features, products))
+          case Error(id, title, stackTrace) =>
+            writer.writeRow(Seq(id, title, stackTrace))
+        }
+      }
+    }
+
+    writer.close()
   }
 
 }

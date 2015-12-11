@@ -39,7 +39,7 @@ class WikipediaDumpPreprocessor {
           pageBuilder ++= "<page>"
 
         case EvElemStart(pre, label, attrs, scope) if inPage =>
-          pageBuilder ++= "<" + label + ">"
+          pageBuilder ++= "<" + label + " " + attrs.map(attr => attr.key + "=\"" + attr.value + "\"").mkString(" ") + " >"
 
         case EvElemStart(pre, label, attrs, scope) =>
 

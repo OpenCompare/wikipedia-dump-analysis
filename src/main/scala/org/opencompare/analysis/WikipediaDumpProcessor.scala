@@ -5,6 +5,8 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
 import org.apache.spark.{SparkContext, SparkConf}
+import org.opencompare.analysis.analyzer.CircularTestAnalyzer
+import org.opencompare.api.java.impl.PCMFactoryImpl
 import org.opencompare.api.java.impl.io.KMFJSONExporter
 import org.opencompare.io.wikipedia.io.{WikiTextLoader, WikiTextTemplateProcessor, MediaWikiAPI}
 
@@ -31,6 +33,7 @@ class WikipediaDumpProcessor {
       val page = pageParser.parseDump(doc)
 
       // Mine PCM
+      val factory = new PCMFactoryImpl
       val mediaWikiAPI = new MediaWikiAPI("wikipedia.org")
       val templateProcessor = new WikiTextTemplateProcessor(mediaWikiAPI) {
         override def expandTemplate(language: String, template: String): String = template
@@ -41,6 +44,14 @@ class WikipediaDumpProcessor {
         val pcmContainers = wikitextMiner.mine(language, page.revision.wikitext, page.title)
 
         val stats = for ((pcmContainer, index) <- pcmContainers.zipWithIndex) yield {
+
+          // Circular test
+          val circularTestAnalyzer = new CircularTestAnalyzer(factory)
+          val kmfCircular = circularTestAnalyzer.kmfJson(pcmContainer)
+          val csvCircular = circularTestAnalyzer.csv(pcmContainer)
+          val htmlCircular = circularTestAnalyzer.html(pcmContainer)
+          val wikitextCircular = circularTestAnalyzer.wikitext(pcmContainer, templateProcessor)
+
           // Write PCM to disk
           val fileName = page.title.replaceAll("[^a-zA-Z0-9.\\-_]", "_") + "_" + index + ".pcm"
 
@@ -55,7 +66,7 @@ class WikipediaDumpProcessor {
           val nbFeatures = pcmContainer.getPcm.getConcreteFeatures.size()
           val nbProducts = pcmContainer.getPcm.getProducts.size()
 
-          PCMStats(page.id, page.title, fileName, nbFeatures, nbProducts)
+          PCMStats(page.id, page.title, fileName, List(kmfCircular, csvCircular, htmlCircular, wikitextCircular), nbFeatures, nbProducts)
         }
 
         stats.toList
