@@ -78,7 +78,7 @@ object WikipediaDumpAnalysisApp {
     val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/stats.csv")
 
     val headers = List("id", "title", "status", "filename") :::
-      List("kmf", "csv", "html", "wikitext").flatMap(t => List("circular" + t + " PCM", "circular" + t + " metadata")) :::
+      List("kmf", "csv", "html", "wikitext").flatMap(t => List("circular PCM " + t , "circular metadata " + t)) :::
       List("features", "products")
 
     writer.writeRow(headers)
@@ -87,7 +87,7 @@ object WikipediaDumpAnalysisApp {
       for (stats <- result) {
         stats match {
           case PCMStats(id, title, filename, circularTest, features, products) =>
-            writer.writeRow(List(id, title, "ok", filename) :: circularTest.flatMap(r => List(r.samePCM, r.sameMetadata)) :: List(features, products))
+            writer.writeRow(List(id, title, "ok", filename) ::: circularTest.flatMap(r => List(r.samePCM, r.sameMetadata)) ::: List(features, products))
           case Error(id, title, stackTrace) =>
             writer.writeRow(Seq(id, title, stackTrace))
         }

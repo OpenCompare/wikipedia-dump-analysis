@@ -14,6 +14,10 @@ class PageParser {
     val title = (pageXML \ "title").head.text
     val id = (pageXML \ "id").head.text
 
+    val redirect = (pageXML \ "redirect").nonEmpty
+
+    val namespace = (pageXML \ "ns").head.text.toInt
+
     val revId = (revXML \ "id").head.text
     val revParentIdOption = (revXML \ "parentid").headOption
     val revParentId = if (revParentIdOption.isDefined) {
@@ -25,7 +29,7 @@ class PageParser {
     val wikitext = (revXML \ "text").head.text
 
     val revision = Revision(revId, revParentId, timestamp, wikitext)
-    val page = Page(id, title, revision)
+    val page = Page(id, title, namespace, redirect, revision)
     page
   }
 
