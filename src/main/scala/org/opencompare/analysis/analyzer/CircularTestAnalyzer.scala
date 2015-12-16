@@ -33,6 +33,11 @@ class CircularTestAnalyzer(val factory: PCMFactory) {
     try {
       val pcmContainer2 = loader.load(exporter.export(pcmContainer)).head
 
+
+      // Ignore PCM name
+      pcmContainer.getPcm.setName("")
+      pcmContainer2.getPcm.setName("")
+
       val samePCM = pcmContainer.getPcm == pcmContainer2.getPcm
       val sameMetadata = pcmContainer.getMetadata == pcmContainer2.getMetadata
       CircularTestResult(name, samePCM, sameMetadata)

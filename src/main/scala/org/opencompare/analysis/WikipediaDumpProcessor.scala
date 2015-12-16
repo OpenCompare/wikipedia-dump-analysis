@@ -42,7 +42,12 @@ class WikipediaDumpProcessor {
         val factory = new PCMFactoryImpl
         val mediaWikiAPI = new MediaWikiAPI("wikipedia.org")
         val templateProcessor = new WikiTextTemplateProcessor(mediaWikiAPI) {
-          override def expandTemplate(language: String, template: String): String = template
+          override def expandTemplate(language: String, template: String): String = {
+            template
+              .replaceAll("\\{", "")
+              .replaceAll("\\}", "")
+              .replaceAll("\\|", "")
+          }
         }
         val wikitextMiner = new WikiTextLoader(templateProcessor)
 
