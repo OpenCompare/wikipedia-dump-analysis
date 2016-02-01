@@ -87,7 +87,7 @@ object WikipediaDumpAnalysisApp {
       for (stats <- result) {
         stats match {
           case PCMStats(id, title, filename, circularTest, features, products) =>
-            writer.writeRow(List(id, title, "ok", filename) ::: circularTest.flatMap(r => List(r.samePCM, r.sameMetadata)) ::: List(features, products))
+            writer.writeRow(List(id, title, "ok", filename) ::: circularTest.flatMap(r => List(r.samePCM.toString.toUpperCase(), r.sameMetadata.toString.toUpperCase())) ::: List(features, products))
           case Error(id, title, stackTrace) =>
             writer.writeRow(Seq(id, title, stackTrace))
         }

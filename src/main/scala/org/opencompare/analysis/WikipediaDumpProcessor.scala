@@ -35,7 +35,7 @@ class WikipediaDumpProcessor {
         page
       }
       .filter { page =>
-        page.namespace == 0
+        page.namespace == 0 && !page.redirect && page.revision.wikitext.contains("[[")
       }
       .map { page =>
         // Mine PCM

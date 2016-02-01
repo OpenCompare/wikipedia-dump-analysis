@@ -41,7 +41,7 @@ class SparkTest extends FlatSpec with Matchers {
     dumpPreprocessor.preprocessDump(zuDumpFile, preprocessedDumpFile)
   }
 
-  it should "process dump file" in {
+  ignore should "process dump file" in {
 
     val dumpProcessor = new WikipediaDumpProcessor
     val results = dumpProcessor.process(sparkContext, preprocessedDumpFile, language, outputDirectory, exportPCM = true, minPartitions)
@@ -71,12 +71,15 @@ class SparkTest extends FlatSpec with Matchers {
 
       val namespace = (xmlPages \ "ns").head.text.toInt
 
-      (title, redirect, special, namespace)
+      val containsLink = (xmlPages \ "revision" \ "text").head.text.contains("[[")
+
+      (title, redirect, special, namespace, containsLink)
     }.cache()
 
     println("all pages = " + types.count())
     println("content pages = " + types.filter(t => !t._2 && !t._3).count())
     println("content pages (ns) = " + types.filter(t => t._4 == 0 && !t._2).count())
+    println("content pages (ns + link) = " + types.filter(t => t._4 == 0 && !t._2 && t._5).count())
     println("redirects = " + types.filter(t => t._2).count())
     println("specials = " + types.filter(t => t._3).count())
     println("namespaces = " + types.map(_._4).distinct().collect().mkString("(", ", ", ")"))
