@@ -79,15 +79,18 @@ object WikipediaDumpAnalysisApp {
 
     val headers = List("id", "title", "status", "filename") :::
       List("kmf", "csv", "html", "wikitext").flatMap(t => List("circular PCM " + t , "circular metadata " + t)) :::
-      List("features", "products")
+      List("features", "products", "feature depth", "empty cells")
 
     writer.writeRow(headers)
 
     for (result <- results) {
       for (stats <- result) {
         stats match {
-          case PCMStats(id, title, filename, circularTest, features, products) =>
-            writer.writeRow(List(id, title, "ok", filename) ::: circularTest.flatMap(r => List(r.samePCM.toString.toUpperCase(), r.sameMetadata.toString.toUpperCase())) ::: List(features, products))
+          case PCMStats(id, title, filename, circularTest, features, products, featureDepth, emptyCells) =>
+            writer.writeRow(
+              List(id, title, "ok", filename) :::
+                circularTest.flatMap(r => List(r.samePCM.toString.toUpperCase(), r.sameMetadata.toString.toUpperCase())) :::
+                List(features, products, featureDepth, emptyCells))
           case Error(id, title, stackTrace) =>
             writer.writeRow(Seq(id, title, stackTrace))
         }

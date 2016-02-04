@@ -74,10 +74,22 @@ class WikipediaDumpProcessor {
             }
 
             // Compute stats
-            val nbFeatures = pcmContainer.getPcm.getConcreteFeatures.size()
-            val nbProducts = pcmContainer.getPcm.getProducts.size()
+            val pcm = pcmContainer.getPcm
 
-            PCMStats(page.id, page.title, fileName, List(kmfCircular, csvCircular, htmlCircular, wikitextCircular), nbFeatures, nbProducts)
+            val nbFeatures = pcm.getConcreteFeatures.size()
+            val nbProducts = pcm.getProducts.size()
+            val featureDepth = pcm.getFeaturesDepth
+            val emptyCells = pcm.getProducts.flatMap(_.getCells).count(_.getContent.isEmpty)
+
+            PCMStats(
+              page.id,
+              page.title,
+              fileName,
+              List(kmfCircular, csvCircular, htmlCircular, wikitextCircular),
+              nbFeatures,
+              nbProducts,
+              featureDepth,
+              emptyCells)
           }
 
           stats.toList
