@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
 import org.apache.spark.{SparkContext, SparkConf}
-import org.opencompare.analysis.analyzer.CircularTestAnalyzer
+import org.opencompare.analysis.analyzer.{ValueAnalyzer, CircularTestAnalyzer}
 import org.opencompare.api.java.impl.PCMFactoryImpl
 import org.opencompare.api.java.impl.io.KMFJSONExporter
 import org.opencompare.io.wikipedia.io.{WikiTextLoader, WikiTextTemplateProcessor, MediaWikiAPI}
@@ -81,6 +81,9 @@ class WikipediaDumpProcessor {
             val featureDepth = pcm.getFeaturesDepth
             val emptyCells = pcm.getProducts.flatMap(_.getCells).count(_.getContent.isEmpty)
 
+            val valueAnalyzer = new ValueAnalyzer
+            val valueResult = valueAnalyzer.analyze(pcm)
+
             PCMStats(
               page.id,
               page.title,
@@ -89,7 +92,8 @@ class WikipediaDumpProcessor {
               nbFeatures,
               nbProducts,
               featureDepth,
-              emptyCells)
+              emptyCells,
+              valueResult)
           }
 
           stats.toList

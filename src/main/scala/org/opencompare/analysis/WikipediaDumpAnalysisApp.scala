@@ -79,18 +79,50 @@ object WikipediaDumpAnalysisApp {
 
     val headers = List("id", "title", "status", "filename") :::
       List("kmf", "csv", "html", "wikitext").flatMap(t => List("circular PCM " + t , "circular metadata " + t)) :::
-      List("features", "products", "feature depth", "empty cells")
+      List("features", "products", "feature depth", "empty cells") :::
+      List(
+        "no interpretation",
+        "value boolean",
+        "value conditional",
+        "value date",
+        "value dimension",
+        "value integer",
+        "value multiple",
+        "value not applicable",
+        "value not available",
+        "value partial",
+        "value real",
+        "value string",
+        "value unit",
+        "value version"
+      )
 
     writer.writeRow(headers)
 
     for (result <- results) {
       for (stats <- result) {
         stats match {
-          case PCMStats(id, title, filename, circularTest, features, products, featureDepth, emptyCells) =>
+          case PCMStats(id, title, filename, circularTest, features, products, featureDepth, emptyCells, valueResult) =>
             writer.writeRow(
               List(id, title, "ok", filename) :::
                 circularTest.flatMap(r => List(r.samePCM.toString.toUpperCase(), r.sameMetadata.toString.toUpperCase())) :::
-                List(features, products, featureDepth, emptyCells))
+                List(features, products, featureDepth, emptyCells) :::
+                List(
+                  valueResult.countNoInterpretation,
+                  valueResult.countBoolean,
+                  valueResult.countConditional,
+                  valueResult.countDate,
+                  valueResult.countDimension,
+                  valueResult.countInteger,
+                  valueResult.countMultiple,
+                  valueResult.countNotApplicable,
+                  valueResult.countNotAvailable,
+                  valueResult.countPartial,
+                  valueResult.countReal,
+                  valueResult.countString,
+                  valueResult.countUnit,
+                  valueResult.countVersion
+                ))
           case Error(id, title, stackTrace) =>
             writer.writeRow(Seq(id, title, stackTrace))
         }

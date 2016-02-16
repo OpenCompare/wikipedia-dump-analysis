@@ -1,5 +1,6 @@
 package org.opencompare.analysis.analyzer
 
+import org.opencompare.api.java.extractor.CellContentInterpreter
 import org.opencompare.api.java.{PCMFactory, PCMContainer}
 import org.opencompare.api.java.impl.PCMFactoryImpl
 import org.opencompare.api.java.impl.io.{KMFJSONLoader, KMFJSONExporter}
@@ -18,11 +19,11 @@ class CircularTestAnalyzer(val factory: PCMFactory) {
   }
 
   def csv(pcmContainer : PCMContainer) : CircularTestResult = {
-    circularTest(pcmContainer, "csv", new CSVLoader(factory), new CSVExporter)
+    circularTest(pcmContainer, "csv", new CSVLoader(factory, new CellContentInterpreter(factory)), new CSVExporter)
   }
 
   def html(pcmContainer : PCMContainer) : CircularTestResult = {
-    circularTest(pcmContainer, "html", new HTMLLoader(factory), new HTMLExporter())
+    circularTest(pcmContainer, "html", new HTMLLoader(factory, new CellContentInterpreter(factory)), new HTMLExporter())
   }
 
   def wikitext(pcmContainer : PCMContainer, templateProcessor : WikiTextTemplateProcessor) : CircularTestResult = {
