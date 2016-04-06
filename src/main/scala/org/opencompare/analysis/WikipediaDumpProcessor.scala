@@ -1,17 +1,19 @@
 package org.opencompare.analysis
 
-import java.io.{PrintWriter, StringWriter, File}
+import java.io.{File, PrintWriter, StringWriter}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
-import org.apache.spark.{SparkContext, SparkConf}
-import org.opencompare.analysis.analyzer.{ValueAnalyzer, CircularTestAnalyzer}
+import com.github.tototoshi.csv.CSVWriter
+import org.apache.spark.{SparkConf, SparkContext}
+import org.opencompare.analysis.analyzer.{CircularTestAnalyzer, TemplateAnalyzer, ValueAnalyzer}
+import org.opencompare.api.java.extractor.CellContentInterpreter
 import org.opencompare.api.java.impl.PCMFactoryImpl
 import org.opencompare.api.java.impl.io.KMFJSONExporter
-import org.opencompare.io.wikipedia.io.{WikiTextLoader, WikiTextTemplateProcessor, MediaWikiAPI}
+import org.opencompare.api.java.io.{ImportMatrixLoader, PCMDirection}
+import org.opencompare.io.wikipedia.io.{MediaWikiAPI, WikiTextLoader, WikiTextTemplateProcessor}
 
 import scala.util.Random
-
 import collection.JavaConversions._
 
 /**
@@ -21,13 +23,15 @@ class WikipediaDumpProcessor {
 
   def process(sparkContext : SparkContext, dumpFile : File, language : String, outputDirectory : File, exportPCM : Boolean, minPartitions : Option[Int]) : Array[List[AnalysisResult]] = {
 
-    val pages = if (minPartitions.isDefined) {
+    // Open dump file
+    val docs = if (minPartitions.isDefined) {
       sparkContext.textFile(dumpFile.getAbsolutePath, minPartitions.get)
     } else {
       sparkContext.textFile(dumpFile.getAbsolutePath)
     }
 
-    val stats = pages
+    // Parse pages
+    val pages = docs
       .map { doc =>
         // Parse XML
         val pageParser = new PageParser
@@ -37,7 +41,9 @@ class WikipediaDumpProcessor {
       .filter { page =>
         page.namespace == 0 && !page.redirect && page.revision.wikitext.contains("[[")
       }
-      .map { page =>
+
+    // Analyze PCMs
+    val stats = pages.map { page =>
         // Mine PCM
         val factory = new PCMFactoryImpl
         val mediaWikiAPI = new MediaWikiAPI("wikipedia.org")
@@ -49,12 +55,17 @@ class WikipediaDumpProcessor {
               .replaceAll("\\|", "")
           }
         }
+        val ioLoader = new ImportMatrixLoader(factory, new CellContentInterpreter(factory), PCMDirection.UNKNOWN)
         val wikitextMiner = new WikiTextLoader(templateProcessor)
 
-        val result : List[AnalysisResult] = try {
-          val pcmContainers = wikitextMiner.mine(language, page.revision.wikitext, page.title)
 
-          val stats = for ((pcmContainer, index) <- pcmContainers.zipWithIndex) yield {
+
+        val result : List[AnalysisResult] = try {
+
+          val importMatrices = wikitextMiner.mineImportMatrix(language, page.revision.wikitext, page.title)
+          val pcmContainers = importMatrices.map(ioLoader.load)
+
+          val stats = for (((pcmContainer, importMatrix), index) <- pcmContainers.zip(importMatrices).zipWithIndex) yield {
 
             // Circular test
             val circularTestAnalyzer = new CircularTestAnalyzer(factory)
@@ -76,6 +87,9 @@ class WikipediaDumpProcessor {
             // Compute stats
             val pcm = pcmContainer.getPcm
 
+            val nbRows = importMatrix.getNumberOfRows
+            val nbColumns = importMatrix.getNumberOfColumns
+
             val nbFeatures = pcm.getConcreteFeatures.size()
             val nbProducts = pcm.getProducts.size()
             val featureDepth = pcm.getFeaturesDepth
@@ -84,16 +98,25 @@ class WikipediaDumpProcessor {
             val valueAnalyzer = new ValueAnalyzer
             val valueResult = valueAnalyzer.analyze(pcm)
 
+            val templateAnalyzer = new TemplateAnalyzer
+            val templateResult = templateAnalyzer.analyzeTemplates(page.revision.wikitext, page.title)
+              .groupBy(_.name)
+              .map(r => (r._1, r._2.size))
+            val templates = templateResult.values.sum
+
             PCMStats(
               page.id,
               page.title,
               fileName,
               List(kmfCircular, csvCircular, htmlCircular, wikitextCircular),
+              nbRows,
+              nbColumns,
               nbFeatures,
               nbProducts,
               featureDepth,
               emptyCells,
-              valueResult)
+              valueResult,
+              templates)
           }
 
           stats.toList
@@ -107,9 +130,34 @@ class WikipediaDumpProcessor {
         }
 
         result
-      }
+      }.collect()
 
-    stats.collect()
+
+    // Analyze templates
+//    val templateStats = pages.map { page =>
+//      val templateAnalyze = new TemplateAnalyzer
+//      val result = templateAnalyze.analyzeTemplates(page.revision.wikitext, page.title)
+//      result.groupBy(_.name).map(r => (r._1, r._2.size))
+//    }.fold(Map.empty[String, Int]) { (a, b) =>
+//      val merged = (a /: b) { case (map, (k,v)) =>
+//        map + ( k -> (v + map.getOrElse(k, 0)) )
+//      }
+//      merged
+//    }
+//
+//    val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/stats-templates.csv")
+//    writer.writeRow(Seq("name", "count"))
+//
+//    templateStats.foreach { result =>
+//      writer.writeRow(Seq(result._1, result._2))
+//      writer.flush()
+//    }
+//
+//    writer.close()
+
+
+    // Return statistics
+    stats
   }
 
 }

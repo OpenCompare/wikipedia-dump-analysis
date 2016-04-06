@@ -4,6 +4,7 @@ import java.io.File
 
 import com.github.tototoshi.csv.CSVWriter
 import org.apache.spark.{SparkConf, SparkContext}
+import org.opencompare.analysis.analyzer.TemplateAnalyzer
 import org.scalatest.{FlatSpec, Matchers}
 
 import scala.xml.XML
@@ -16,16 +17,18 @@ class SparkTest extends FlatSpec with Matchers {
   val articleNamesDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/en/enwiki-20151102-pages-articles-multistream-index.txt.bz2")
   val enDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/en/enwiki-20151102-pages-articles-multistream.xml.bz2")
   val enPreprocessedDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/en/en.preprocessed.xml.bz2")
+  val enMinPartitions = 1000000
 
   val zuDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/zu/zuwiki-20150806-pages-articles-multistream.xml.bz2")
   val zuPreprocessedDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/zu/zu.preprocessed.xml.bz2")
   val zuPreprocessedXMLFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/zu/zu.preprocessed.xml")
+  val zuMinPartitions = 10000
 
   val preprocessedDumpFile = zuPreprocessedDumpFile
   val language = "zu"
   val outputDirectory = new File("output/")
   outputDirectory.mkdirs() // Prepare output directory
-  val minPartitions = Some(10000)
+  val minPartitions = Some(zuMinPartitions)
 
 
 
@@ -33,6 +36,8 @@ class SparkTest extends FlatSpec with Matchers {
   val sparkConf = new SparkConf()
     .setAppName("wikipedia-analysis")
     .setMaster("local[1]")
+    .set("spark.local.dir", "/home/gbecan/tmp")
+
 
     val sparkContext = new SparkContext(sparkConf)
 
@@ -41,7 +46,7 @@ class SparkTest extends FlatSpec with Matchers {
     dumpPreprocessor.preprocessDump(zuDumpFile, preprocessedDumpFile)
   }
 
-  ignore should "process dump file" in {
+  it should "process dump file" in {
 
     val dumpProcessor = new WikipediaDumpProcessor
     val results = dumpProcessor.process(sparkContext, preprocessedDumpFile, language, outputDirectory, exportPCM = true, minPartitions)
@@ -106,4 +111,29 @@ class SparkTest extends FlatSpec with Matchers {
     println(namespaces.countByValue())
   }
 
+  ignore should "analyze templates" in {
+    val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/stats-templates.csv")
+
+    writer.writeRow(Seq("name", "count"))
+
+    val pages = sparkContext.textFile(preprocessedDumpFile.getAbsolutePath, minPartitions.get)
+    pages.map { doc =>
+      val pageParser = new PageParser
+      val page = pageParser.parseDump(doc)
+
+      val templateAnalyze = new TemplateAnalyzer
+      val result = templateAnalyze.analyzeTemplates(page.revision.wikitext, page.title)
+      result.groupBy(_.name).map(r => (r._1, r._2.size))
+    }.fold(Map.empty[String, Int]) { (a, b) =>
+      val merged = (a /: b) { case (map, (k,v)) =>
+        map + ( k -> (v + map.getOrElse(k, 0)) )
+      }
+      merged
+    }
+      .foreach { result =>
+      writer.writeRow(Seq(result._1, result._2))
+    }
+
+    writer.close()
+  }
 }

@@ -79,6 +79,7 @@ object WikipediaDumpAnalysisApp {
 
     val headers = List("id", "title", "status", "filename") :::
       List("kmf", "csv", "html", "wikitext").flatMap(t => List("circular PCM " + t , "circular metadata " + t)) :::
+      List("rows", "columns") :::
       List("features", "products", "feature depth", "empty cells") :::
       List(
         "no interpretation",
@@ -95,17 +96,19 @@ object WikipediaDumpAnalysisApp {
         "value string",
         "value unit",
         "value version"
-      )
+      ) :::
+      List("templates")
 
     writer.writeRow(headers)
 
     for (result <- results) {
       for (stats <- result) {
         stats match {
-          case PCMStats(id, title, filename, circularTest, features, products, featureDepth, emptyCells, valueResult) =>
+          case PCMStats(id, title, filename, circularTest, rows, columns, features, products, featureDepth, emptyCells, valueResult, templates) =>
             writer.writeRow(
               List(id, title, "ok", filename) :::
                 circularTest.flatMap(r => List(r.samePCM.toString.toUpperCase(), r.sameMetadata.toString.toUpperCase())) :::
+                List(rows, columns) :::
                 List(features, products, featureDepth, emptyCells) :::
                 List(
                   valueResult.countNoInterpretation,
@@ -122,7 +125,9 @@ object WikipediaDumpAnalysisApp {
                   valueResult.countString,
                   valueResult.countUnit,
                   valueResult.countVersion
-                ))
+                ) :::
+                List(templates)
+            )
           case Error(id, title, stackTrace) =>
             writer.writeRow(Seq(id, title, stackTrace))
         }
@@ -130,6 +135,25 @@ object WikipediaDumpAnalysisApp {
     }
 
     writer.close()
+  }
+
+  def writeTemplateResultsToCSV(outputDirectory : File, results : Array[List[AnalysisResult]]) {
+
+//    val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/stats-templates.csv")
+//    writer.writeRow(Seq("name", "count"))
+//
+//    for (result <- results) {
+//      for (stats <- result) {
+//        stats match {
+//          case PCMStats(id, title, filename, circularTest, rows, columns, features, products, featureDepth, emptyCells, valueResult, templateResult) =>
+//            writer.writeRow(Seq(templateResult._1, templateResult._2))
+//            writer.flush()
+//          case _ =>
+//        }
+//      }
+//    }
+//
+//    writer.close()
   }
 
 }
