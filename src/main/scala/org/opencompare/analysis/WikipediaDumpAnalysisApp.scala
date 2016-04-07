@@ -81,7 +81,7 @@ object WikipediaDumpAnalysisApp {
     val headers = List("id", "title", "status", "filename") :::
       List("kmf", "csv", "html", "wikitext").flatMap(t => List("circular PCM " + t , "circular metadata " + t)) :::
       List("rows", "columns") :::
-      List("features", "products", "feature depth", "empty cells") :::
+      List("features", "products", "feature depth", "cells", "empty cells") :::
       List(
         "no interpretation",
         "value boolean",
@@ -105,12 +105,12 @@ object WikipediaDumpAnalysisApp {
     for (result <- results) {
       for (stats <- result) {
         stats match {
-          case PCMStats(id, title, filename, circularTest, rows, columns, features, products, featureDepth, emptyCells, valueResult, templates) =>
+          case PCMStats(id, title, filename, circularTest, rows, columns, features, products, featureDepth, cells, emptyCells, valueResult, templates) =>
             writer.writeRow(
               List(id, title, "ok", filename) :::
                 circularTest.flatMap(r => List(r.samePCM.toString.toUpperCase(), r.sameMetadata.toString.toUpperCase())) :::
                 List(rows, columns) :::
-                List(features, products, featureDepth, emptyCells) :::
+                List(features, products, featureDepth, cells, emptyCells) :::
                 List(
                   valueResult.countNoInterpretation,
                   valueResult.countBoolean,

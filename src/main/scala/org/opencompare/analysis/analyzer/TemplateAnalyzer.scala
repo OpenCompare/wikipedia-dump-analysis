@@ -49,7 +49,7 @@ class TemplateAnalyzer extends AstVisitor[WtNode] with CompleteWikitextVisitorNo
     templateName = ""
     dispatch(n.getName)
     results = results  + (templateName -> (results.getOrElse(templateName, 0) + 1))
-    inTemplate =false
+    inTemplate = false
   }
 
   override def visit(n: WtTemplateArguments): Unit = iterate(n)

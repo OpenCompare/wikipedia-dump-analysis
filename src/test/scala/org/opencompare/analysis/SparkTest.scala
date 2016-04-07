@@ -22,7 +22,7 @@ class SparkTest extends FlatSpec with Matchers {
   val zuDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/zu/zuwiki-20150806-pages-articles-multistream.xml.bz2")
   val zuPreprocessedDumpFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/zu/zu.preprocessed.xml.bz2")
   val zuPreprocessedXMLFile = new File("/home/gbecan/Documents/dev/opencompare/wikipedia-dumps/zu/zu.preprocessed.xml")
-  val zuMinPartitions = 5000
+  val zuMinPartitions = 100
 
   val preprocessedDumpFile = zuPreprocessedDumpFile
   val language = "zu"

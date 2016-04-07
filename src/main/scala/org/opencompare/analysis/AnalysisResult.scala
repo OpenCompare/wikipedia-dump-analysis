@@ -16,6 +16,7 @@ case class PCMStats(
                      features : Int,
                      products : Int,
                      featureDepth : Int,
+                     cells : Int,
                      emptyCells : Int,
                      valueResult : ValueResult,
                      templates : Int) extends AnalysisResult

@@ -93,6 +93,7 @@ class WikipediaDumpProcessor {
             val nbFeatures = pcm.getConcreteFeatures.size()
             val nbProducts = pcm.getProducts.size()
             val featureDepth = pcm.getFeaturesDepth
+            val nbCells = pcm.getProducts.flatMap(_.getCells).size
             val emptyCells = pcm.getProducts.flatMap(_.getCells).count(_.getContent.isEmpty)
 
             val valueAnalyzer = new ValueAnalyzer
@@ -103,14 +104,14 @@ class WikipediaDumpProcessor {
             val templates = templateResult.values.sum
 
             // Write templates
-            if (templateResult.nonEmpty) {
-              val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/templates/" + page.id + ".csv")
-              writer.writeRow(Seq("name", "count"))
-              templateResult.foreach { result =>
-                writer.writeRow(Seq(result._1, result._2))
-              }
-              writer.close()
-            }
+//            if (templateResult.nonEmpty) {
+//              val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/templates/" + page.id + ".csv")
+//              writer.writeRow(Seq("name", "count"))
+//              templateResult.foreach { result =>
+//                writer.writeRow(Seq(result._1, result._2))
+//              }
+//              writer.close()
+//            }
 
 
             PCMStats(
@@ -123,6 +124,7 @@ class WikipediaDumpProcessor {
               nbFeatures,
               nbProducts,
               featureDepth,
+              nbCells,
               emptyCells,
               valueResult,
               templates)
@@ -143,30 +145,58 @@ class WikipediaDumpProcessor {
 
 
     // Analyze templates
-//    val templateStats = pages.map { page =>
-//      val templateAnalyze = new TemplateAnalyzer
-//      val result = templateAnalyze.analyzeTemplates(page.revision.wikitext, page.title)
-//      result.groupBy(_.name).map(r => (r._1, r._2.size))
-//    }.fold(Map.empty[String, Int]) { (a, b) =>
-//      val merged = (a /: b) { case (map, (k,v)) =>
-//        map + ( k -> (v + map.getOrElse(k, 0)) )
-//      }
-//      merged
-//    }
-//
-//    val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/stats-templates.csv")
-//    writer.writeRow(Seq("name", "count"))
-//
-//    templateStats.foreach { result =>
-//      writer.writeRow(Seq(result._1, result._2))
-//      writer.flush()
-//    }
-//
-//    writer.close()
+    val templateStats = pages.map { page =>
+      try {
+
+        // Init
+        val factory = new PCMFactoryImpl
+        val mediaWikiAPI = new MediaWikiAPI("wikipedia.org")
+        val templateProcessor = new WikiTextTemplateProcessor(mediaWikiAPI) {
+          override def expandTemplate(language: String, template: String): String = {
+            template
+              .replaceAll("\\{", "")
+              .replaceAll("\\}", "")
+              .replaceAll("\\|", "")
+          }
+        }
+        val wikitextMiner = new WikiTextLoader(templateProcessor)
+        val importMatrices = wikitextMiner.mineImportMatrix(language, page.revision.wikitext, page.title)
+
+        val templateAnalyze = new TemplateAnalyzer
+
+        // Count usage of templates
+        importMatrices.map { importMatrix =>
+          templateAnalyze.analyzeTemplates(importMatrix, page.title)
+        }.fold(Map.empty[String, Int]) { (a, b) =>
+          val merged = (a /: b) { case (map, (k,v)) =>
+            map + ( k -> (v + map.getOrElse(k, 0)) )
+          }
+          merged
+        }
+      } catch {
+        case _ : Throwable => Map.empty[String, Int]
+      }
+    }.fold(Map.empty[String, Int]) { (a, b) =>
+      val merged = (a /: b) { case (map, (k,v)) =>
+        map + ( k -> (v + map.getOrElse(k, 0)) )
+      }
+      merged
+    }
+
+    val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/stats-templates.csv")
+    writer.writeRow(Seq("name", "count"))
+
+    templateStats.foreach { result =>
+      writer.writeRow(Seq(result._1, result._2))
+      writer.flush()
+    }
+
+    writer.close()
 
 
     // Return statistics
     stats
   }
+
 
 }
