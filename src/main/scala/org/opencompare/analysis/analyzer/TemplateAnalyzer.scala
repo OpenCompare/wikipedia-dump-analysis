@@ -1,6 +1,7 @@
 package org.opencompare.analysis.analyzer
 
 import de.fau.cs.osr.ptk.common.AstVisitor
+import org.opencompare.api.java.io.ImportMatrix
 import org.sweble.wikitext.parser.{WikitextParser, WikitextPreprocessor}
 import org.sweble.wikitext.parser.nodes.{WtExternalLink, WtHorizontalRule, WtTemplate, _}
 import org.sweble.wikitext.parser.utils.SimpleParserConfig
@@ -14,14 +15,29 @@ class TemplateAnalyzer extends AstVisitor[WtNode] with CompleteWikitextVisitorNo
   private val preprocessor = new WikitextPreprocessor(parserConfig)
 //  private val parser = new WikitextParser(parserConfig)
 
-  private var results = List.empty[TemplateResult]
+  private var results = Map.empty[String, Int]
   private var inTemplate = false
   private var templateName = ""
 
-  def analyzeTemplates(code: String, title : String) : List[TemplateResult] = {
-    results = List.empty[TemplateResult]
-    val ast = preprocessor.parseArticle(code, title)
-    this.go(ast)
+  def analyzeTemplates(importMatrix: ImportMatrix, title : String) : Map[String, Int] = {
+    results = Map.empty[String, Int]
+
+    for (row <- 0 until importMatrix.getNumberOfRows;
+         column <- 0 until importMatrix.getNumberOfColumns) {
+      val cell = Option(importMatrix.getCell(row, column))
+
+      if (cell.isDefined) {
+        val code = "{|\n" +
+          "|-\n" +
+          "| " +
+          cell.get.getRawContent + "\n" +
+          "|}"
+
+        val ast = preprocessor.parseArticle(code, title)
+        this.go(ast)
+      }
+    }
+
     results
   }
 
@@ -32,7 +48,7 @@ class TemplateAnalyzer extends AstVisitor[WtNode] with CompleteWikitextVisitorNo
     inTemplate = true
     templateName = ""
     dispatch(n.getName)
-    results = TemplateResult(templateName, n.getArgs.size()) :: results
+    results = results  + (templateName -> (results.getOrElse(templateName, 0) + 1))
     inTemplate =false
   }
 

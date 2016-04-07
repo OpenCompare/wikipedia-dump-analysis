@@ -99,10 +99,19 @@ class WikipediaDumpProcessor {
             val valueResult = valueAnalyzer.analyze(pcm)
 
             val templateAnalyzer = new TemplateAnalyzer
-            val templateResult = templateAnalyzer.analyzeTemplates(page.revision.wikitext, page.title)
-              .groupBy(_.name)
-              .map(r => (r._1, r._2.size))
+            val templateResult = templateAnalyzer.analyzeTemplates(importMatrix, page.title)
             val templates = templateResult.values.sum
+
+            // Write templates
+            if (templateResult.nonEmpty) {
+              val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/templates/" + page.id + ".csv")
+              writer.writeRow(Seq("name", "count"))
+              templateResult.foreach { result =>
+                writer.writeRow(Seq(result._1, result._2))
+              }
+              writer.close()
+            }
+
 
             PCMStats(
               page.id,

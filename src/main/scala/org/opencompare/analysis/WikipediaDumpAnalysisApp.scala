@@ -47,6 +47,7 @@ object WikipediaDumpAnalysisApp {
       // Create output directory structure
       outputDirectory.mkdirs()
       new File(outputDirectory.getAbsolutePath + "/pcms").mkdirs()
+      new File(outputDirectory.getAbsolutePath + "/templates").mkdirs()
 
       // Create Spark context
       val sparkConf = new SparkConf()
@@ -135,25 +136,6 @@ object WikipediaDumpAnalysisApp {
     }
 
     writer.close()
-  }
-
-  def writeTemplateResultsToCSV(outputDirectory : File, results : Array[List[AnalysisResult]]) {
-
-//    val writer = CSVWriter.open(outputDirectory.getAbsolutePath + "/stats-templates.csv")
-//    writer.writeRow(Seq("name", "count"))
-//
-//    for (result <- results) {
-//      for (stats <- result) {
-//        stats match {
-//          case PCMStats(id, title, filename, circularTest, rows, columns, features, products, featureDepth, emptyCells, valueResult, templateResult) =>
-//            writer.writeRow(Seq(templateResult._1, templateResult._2))
-//            writer.flush()
-//          case _ =>
-//        }
-//      }
-//    }
-//
-//    writer.close()
   }
 
 }
