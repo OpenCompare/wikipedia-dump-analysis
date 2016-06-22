@@ -34,6 +34,7 @@ class SparkTest extends FlatSpec with Matchers {
   outputDirectory.mkdirs()
   new File(outputDirectory.getAbsolutePath + "/pcms").mkdirs()
   new File(outputDirectory.getAbsolutePath + "/templates").mkdirs()
+  new File(outputDirectory.getAbsolutePath + "/reports").mkdirs()
 
 
   val sparkConf = new SparkConf()

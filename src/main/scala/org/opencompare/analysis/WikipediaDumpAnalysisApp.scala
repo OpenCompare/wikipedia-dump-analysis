@@ -48,6 +48,7 @@ object WikipediaDumpAnalysisApp {
       outputDirectory.mkdirs()
       new File(outputDirectory.getAbsolutePath + "/pcms").mkdirs()
       new File(outputDirectory.getAbsolutePath + "/templates").mkdirs()
+      new File(outputDirectory.getAbsolutePath + "/reports").mkdirs()
 
       // Create Spark context
       val sparkConf = new SparkConf()
@@ -80,7 +81,7 @@ object WikipediaDumpAnalysisApp {
 
     val headers = List("id", "title", "status", "filename") :::
       List("kmf", "csv", "html", "wikitext").flatMap(t => List("circular PCM " + t , "circular metadata " + t)) :::
-      List("rows", "columns") :::
+      List("valid", "rows", "columns") :::
       List("features", "products", "feature depth", "cells", "empty cells") :::
       List(
         "no interpretation",
@@ -105,11 +106,11 @@ object WikipediaDumpAnalysisApp {
     for (result <- results) {
       for (stats <- result) {
         stats match {
-          case PCMStats(id, title, filename, circularTest, rows, columns, features, products, featureDepth, cells, emptyCells, valueResult, templates) =>
+          case PCMStats(id, title, filename, circularTest, valid, rows, columns, features, products, featureDepth, cells, emptyCells, valueResult, templates) =>
             writer.writeRow(
               List(id, title, "ok", filename) :::
                 circularTest.flatMap(r => List(r.samePCM.toString.toUpperCase(), r.sameMetadata.toString.toUpperCase())) :::
-                List(rows, columns) :::
+                List(valid.toString.toUpperCase, rows, columns) :::
                 List(features, products, featureDepth, cells, emptyCells) :::
                 List(
                   valueResult.countNoInterpretation,

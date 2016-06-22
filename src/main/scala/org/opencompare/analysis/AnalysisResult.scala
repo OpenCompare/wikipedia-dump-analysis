@@ -11,6 +11,7 @@ case class PCMStats(
                      title : String,
                      filename : String,
                      circularTest : List[CircularTestResult],
+                     valid : Boolean,
                      rows : Int,
                      columns : Int,
                      features : Int,

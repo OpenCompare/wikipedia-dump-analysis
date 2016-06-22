@@ -73,9 +73,11 @@ class WikipediaDumpProcessor {
             val csvCircular = circularTestAnalyzer.csv(pcmContainer)
             val htmlCircular = circularTestAnalyzer.html(pcmContainer)
             val wikitextCircular = circularTestAnalyzer.wikitext(pcmContainer, templateProcessor)
+            val allCircular = kmfCircular and csvCircular and htmlCircular and wikitextCircular
 
             // Write PCM to disk
-            val fileName = page.title.replaceAll("[^a-zA-Z0-9.\\-_]", "_") + "_" + index + ".pcm"
+            val baseName = page.title.replaceAll("[^a-zA-Z0-9.\\-_]", "_") + "_" + index
+            val fileName = baseName + ".pcm"
 
             if (exportPCM) {
               val exporter = new KMFJSONExporter
@@ -84,8 +86,17 @@ class WikipediaDumpProcessor {
               Files.write(outputPath, List(json), StandardCharsets.UTF_8)
             }
 
+            // Write debug info
+//            if (!allCircular.samePCM) {
+//              val outputPath = Paths.get(outputDirectory.getAbsolutePath, "reports", baseName + ".wikitext")
+//              val debugInfo = page.revision.wikitext
+//              Files.write(outputPath, List(debugInfo), StandardCharsets.UTF_8)
+//            }
+
             // Compute stats
             val pcm = pcmContainer.getPcm
+
+            val isValid = pcm.isValid
 
             val nbRows = importMatrix.getNumberOfRows
             val nbColumns = importMatrix.getNumberOfColumns
@@ -119,6 +130,7 @@ class WikipediaDumpProcessor {
               page.title,
               fileName,
               List(kmfCircular, csvCircular, htmlCircular, wikitextCircular),
+              isValid,
               nbRows,
               nbColumns,
               nbFeatures,
