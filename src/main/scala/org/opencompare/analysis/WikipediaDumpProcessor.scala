@@ -67,6 +67,8 @@ class WikipediaDumpProcessor {
 
           val stats = for (((pcmContainer, importMatrix), index) <- pcmContainers.zip(importMatrices).zipWithIndex) yield {
 
+            val pcm = pcmContainer.getPcm
+
             // Circular test
             val circularTestAnalyzer = new CircularTestAnalyzer(factory)
             val kmfCircular = circularTestAnalyzer.kmfJson(pcmContainer)
@@ -87,15 +89,13 @@ class WikipediaDumpProcessor {
             }
 
             // Write debug info
-//            if (!allCircular.samePCM) {
-//              val outputPath = Paths.get(outputDirectory.getAbsolutePath, "reports", baseName + ".wikitext")
-//              val debugInfo = page.revision.wikitext
-//              Files.write(outputPath, List(debugInfo), StandardCharsets.UTF_8)
-//            }
+            if (pcm.isValid && !allCircular.samePCM) {
+              val outputPath = Paths.get(outputDirectory.getAbsolutePath, "reports", baseName + ".wikitext")
+              val debugInfo = page.revision.wikitext
+              Files.write(outputPath, List(debugInfo), StandardCharsets.UTF_8)
+            }
 
             // Compute stats
-            val pcm = pcmContainer.getPcm
-
             val isValid = pcm.isValid
 
             val nbRows = importMatrix.getNumberOfRows
