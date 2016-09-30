@@ -3,6 +3,14 @@ Experiment on dumps of Wikipedia
 
 
 # Starting the experiment on Grid5000
+
+## Requirements
+- Environment for Grid5000 with Java 8
+- Jar with dependencies of this project (can be obtained with ```mvn clean install```)
+
+
+## Submission of the job
+
 Example of a job with 15 nodes on paravance cluster
 ```
 oarsub -l "{cluster='paravance'}/nodes=15,walltime=2" -t deploy "./start-spark-cluster.sh /PATH/TO/WIKIPEDIA/DUMP/en.preprocessed.xml.bz2 en /PATH/TO/OUTPUT/DIRECTORY false 1000"
